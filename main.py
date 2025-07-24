@@ -61,13 +61,18 @@ class MatchMakingModel:
 
 # Example usage to test
 if __name__ == "__main__":
+
     # Instantiate with center coords (old East Delhi average)
-    seeder = DummyDataSeeder(center_lat=28.65, center_lng=77.275)
+    lead_lat=28.65
+    lead_lng=77.275
+    lead_mobile="+91333333333"
+
+    seeder = DummyDataSeeder(center_lat=lead_lat, center_lng=lead_lng)
     partners = seeder.seed()
     business_filter = BusinessFilter(partners)
     # Sample lead near center
-    sample_location = Location(lat=28.65, lng=77.275, address="Sample Center")
-    sample_lead = Lead(mobile="+91333333333", location=sample_location)
+    sample_location = Location(lat=lead_lat, lng=lead_lng, address="Sample Center")
+    sample_lead = Lead(mobile=lead_mobile, location=sample_location)
     notified = business_filter.notified_partners(sample_lead)
     model = MatchMakingModel(notified)
     matches = model.match(sample_lead)
