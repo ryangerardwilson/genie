@@ -73,8 +73,8 @@ if __name__ == "__main__":
     # Sample lead near center
     sample_location = Location(lat=lead_lat, lng=lead_lng, address="Sample Center")
     sample_lead = Lead(mobile=lead_mobile, location=sample_location)
-    notified = business_filter.notified_partners(sample_lead)
-    model = MatchMakingModel(notified)
+    notifiable = business_filter.notified_partners(sample_lead)
+    model = MatchMakingModel(notifiable)
     matches = model.match(sample_lead)
     pprint(matches)  # Pretty print the full matches
 
