@@ -1,3 +1,4 @@
+# ~/Apps/genie/dummy_data_seeder.py
 from typing import List
 from datetime import date, timedelta
 import random
@@ -15,13 +16,13 @@ class DummyDataSeeder:
         self.num_partners = 10
         self.recent_lead_locations = 50  # Number of unique recent lead locations (and leads)
         self.customers = 20  # Number of unique customers
+        self.splitter_locations = 30  # Number of unique splitter locations
 
         # Set seed for reproducibility, you unpredictable moron
         random.seed(42)
 
     def generate_locations(self, num: int, r_min: float, r_max: float, min_dist: float = 30.0) -> List[Location]:
         locations = []
-        i = 0
         center_lat_rad = radians(self.center_lat)
         while len(locations) < num:
             theta = random.uniform(0, 2 * pi)
@@ -36,12 +37,10 @@ class DummyDataSeeder:
             candidate_lng = round(self.center_lng + delta_lng, 6)
             candidate = Location(
                 lat=candidate_lat,
-                lng=candidate_lng,
-                address=f"Location {i}"
+                lng=candidate_lng
             )
             if all(self.haversine(candidate, loc) >= min_dist for loc in locations):
                 locations.append(candidate)
-                i += 1
         return locations
 
     def haversine(self, loc1: Location, loc2: Location) -> float:
@@ -55,7 +54,7 @@ class DummyDataSeeder:
         return R * c
 
     def seed(self) -> List[Partner]:
-        center = Location(lat=self.center_lat, lng=self.center_lng, address="Center")
+        center = Location(lat=self.center_lat, lng=self.center_lng)
 
         # Decide random % of partners to have locations outside
         random_perc = random.randint(0, 50)
@@ -72,14 +71,15 @@ class DummyDataSeeder:
         # Current date
         current_date = date(2025, 7, 24)
 
-        # Generate customer with given location
-        def generate_customer(is_active: bool, location: Location) -> Customer:
+        # Generate customer with given location and address
+        def generate_customer(is_active: bool, location: Location, address: str) -> Customer:
             if is_active:
                 expiry = current_date + timedelta(days=random.randint(1, 730))
             else:
                 expiry = current_date - timedelta(days=random.randint(1, 365))
             return Customer(
                 mobile=fake_mobile(),
+                address=address,
                 plan_expiry_dt=expiry,
                 location=location,
                 installation_speed_in_hrs=random.randint(2, 150)
@@ -105,9 +105,10 @@ class DummyDataSeeder:
                 counts[-1] = 0
             return counts
 
-        # Generate counts for leads and customers
+        # Generate counts for leads, customers, and splitters
         lead_counts = generate_counts(self.recent_lead_locations, self.num_partners)
         customer_counts = generate_counts(self.customers, self.num_partners)
+        splitter_counts = generate_counts(self.splitter_locations, self.num_partners)
 
         # Generate lead locations and leads
         lead_inside_num = sum(lead_counts[i] for i in inside_indices)
@@ -124,16 +125,26 @@ class DummyDataSeeder:
         customer_outside_num = sum(customer_counts[i] for i in outside_indices)
         customer_locs_inside = self.generate_locations(customer_inside_num, 0.0, self.radius)
         customer_locs_outside = self.generate_locations(customer_outside_num, self.radius, self.outer_radius)
-        all_customers_inside = [generate_customer(random.choice([True, False]), loc) for loc in customer_locs_inside]
-        all_customers_outside = [generate_customer(random.choice([True, False]), loc) for loc in customer_locs_outside]
+        all_customers_inside = [generate_customer(random.choice([True, False]), loc, f"Inside Location {idx}") for idx, loc in enumerate(customer_locs_inside)]
+        all_customers_outside = [generate_customer(random.choice([True, False]), loc, f"Outside Location {idx}") for idx, loc in enumerate(customer_locs_outside)]
 
-        # Separate active and inactive
+        # Generate splitter locations
+        splitter_inside_num = sum(splitter_counts[i] for i in inside_indices)
+        splitter_outside_num = sum(splitter_counts[i] for i in outside_indices)
+        splitter_locs_inside = self.generate_locations(splitter_inside_num, 0.0, self.radius)
+        splitter_locs_outside = self.generate_locations(splitter_outside_num, self.radius, self.outer_radius)
+        all_splitters_inside = splitter_locs_inside
+        all_splitters_outside = splitter_locs_outside
+        random.shuffle(all_splitters_inside)
+        random.shuffle(all_splitters_outside)
+
+        # Separate active and inactive customers
         all_active_customers_inside = [c for c in all_customers_inside if c.plan_expiry_dt > current_date]
         all_inactive_customers_inside = [c for c in all_customers_inside if c.plan_expiry_dt <= current_date]
         all_active_customers_outside = [c for c in all_customers_outside if c.plan_expiry_dt > current_date]
         all_inactive_customers_outside = [c for c in all_customers_outside if c.plan_expiry_dt <= current_date]
 
-        # Shuffle
+        # Shuffle customers
         random.shuffle(all_active_customers_inside)
         random.shuffle(all_inactive_customers_inside)
         random.shuffle(all_active_customers_outside)
@@ -151,6 +162,7 @@ class DummyDataSeeder:
         lead_index_inside = lead_index_outside = 0
         active_index_inside = active_index_outside = 0
         inactive_index_inside = inactive_index_outside = 0
+        splitter_index_inside = splitter_index_outside = 0
         inside_partner_idx = outside_partner_idx = 0
 
         partners = []
@@ -162,6 +174,8 @@ class DummyDataSeeder:
                 active_index_outside += active_counts_outside[outside_partner_idx]
                 inactive_customers = all_inactive_customers_outside[inactive_index_outside : inactive_index_outside + inactive_counts_outside[outside_partner_idx]]
                 inactive_index_outside += inactive_counts_outside[outside_partner_idx]
+                splitters = all_splitters_outside[splitter_index_outside : splitter_index_outside + splitter_counts[i]]
+                splitter_index_outside += splitter_counts[i]
                 outside_partner_idx += 1
             else:
                 recent_leads = all_recent_leads_inside[lead_index_inside : lead_index_inside + lead_counts[i]]
@@ -170,6 +184,8 @@ class DummyDataSeeder:
                 active_index_inside += active_counts_inside[inside_partner_idx]
                 inactive_customers = all_inactive_customers_inside[inactive_index_inside : inactive_index_inside + inactive_counts_inside[inside_partner_idx]]
                 inactive_index_inside += inactive_counts_inside[inside_partner_idx]
+                splitters = all_splitters_inside[splitter_index_inside : splitter_index_inside + splitter_counts[i]]
+                splitter_index_inside += splitter_counts[i]
                 inside_partner_idx += 1
 
             partner = Partner(
@@ -178,6 +194,7 @@ class DummyDataSeeder:
                 active_customers=active_customers,
                 inactive_but_geographically_relevant_customers=inactive_customers,
                 recent_leads_interested_in=recent_leads,
+                splitters=splitters,
                 tenure=random.randint(1, 10)
             )
             partners.append(partner)

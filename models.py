@@ -4,7 +4,6 @@ from datetime import date, timedelta
 class Location(NamedTuple):
     lat: float
     lng: float
-    address: str
 
 class Lead(NamedTuple):
     mobile: str
@@ -12,6 +11,7 @@ class Lead(NamedTuple):
 
 class Customer(NamedTuple):
     mobile: str
+    address: str
     plan_expiry_dt: date
     location: Location
     installation_speed_in_hrs: int
@@ -22,4 +22,5 @@ class Partner(NamedTuple):
     active_customers: List[Customer]
     inactive_but_geographically_relevant_customers: List[Customer]
     recent_leads_interested_in: List[Lead]
+    splitters: List[Location]
     tenure: int

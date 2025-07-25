@@ -1,3 +1,4 @@
+# ~/Apps/genie/main.py
 from typing import List, Tuple
 from datetime import date, timedelta
 from math import radians, sin, cos, sqrt, atan2
@@ -29,7 +30,8 @@ class MatchMakingModel:
             all_locations = (
                 [c.location for c in partner.active_customers] +
                 [c.location for c in partner.inactive_but_geographically_relevant_customers] +
-                [l.location for l in partner.recent_leads_interested_in]
+                [l.location for l in partner.recent_leads_interested_in] +
+                partner.splitters
             )
             if not all_locations:
                 continue  # Skip partners with no reference locations
@@ -38,11 +40,12 @@ class MatchMakingModel:
             if min_dist_all > 500:
                 continue  # Not within 500m
 
-            # Compute score: prefer closest recent lead, fallback to closest customer
+            # Compute score: prefer closest recent lead, fallback to closest customer or splitter
             recent_locs = [l.location for l in partner.recent_leads_interested_in]
             customer_locs = (
                 [c.location for c in partner.active_customers] +
-                [c.location for c in partner.inactive_but_geographically_relevant_customers]
+                [c.location for c in partner.inactive_but_geographically_relevant_customers] +
+                partner.splitters
             )
             if recent_locs:
                 min_dist = min(haversine(lead.location, loc) for loc in recent_locs)
@@ -71,7 +74,7 @@ if __name__ == "__main__":
     partners = seeder.seed()
     business_filter = BusinessFilter(partners)
     # Sample lead near center
-    sample_location = Location(lat=lead_lat, lng=lead_lng, address="Sample Center")
+    sample_location = Location(lat=lead_lat, lng=lead_lng)
     sample_lead = Lead(mobile=lead_mobile, location=sample_location)
     notifiable = business_filter.notified_partners(sample_lead)
     model = MatchMakingModel(notifiable)
