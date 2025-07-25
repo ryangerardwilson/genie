@@ -6,9 +6,10 @@ from pprint import pprint
 import random
 
 from models import Location, Lead, Customer, Partner
-from dummy_data_seeder import DummyDataSeeder
+from synthetic_data_seeder import SyntheticDataSeeder
 from output_visualizer import OutputVisualizer
 from business_filter import BusinessFilter
+from synthetic_data_partner_portfolio_visualizer import SyntheticDataPartnerPortfolioVisualizer
 
 class MatchMakingModel:
     def __init__(self, partners: List[Partner]) -> None:
@@ -70,12 +71,17 @@ if __name__ == "__main__":
     lead_lng=77.275
     lead_mobile="+91333333333"
 
-    seeder = DummyDataSeeder(center_lat=lead_lat, center_lng=lead_lng)
+    seeder = SyntheticDataSeeder(center_lat=lead_lat, center_lng=lead_lng)
     partners = seeder.seed()
-    business_filter = BusinessFilter(partners)
-    # Sample lead near center
+
+    # Invoke the portfolio visualizer after seeding
+    portfolio_visualizer = SyntheticDataPartnerPortfolioVisualizer(partners)
     sample_location = Location(lat=lead_lat, lng=lead_lng)
     sample_lead = Lead(mobile=lead_mobile, location=sample_location)
+    portfolio_visualizer.visualize(sample_lead)
+
+    business_filter = BusinessFilter(partners)
+    # Sample lead near center
     notifiable = business_filter.notified_partners(sample_lead)
     model = MatchMakingModel(notifiable)
     matches = model.match(sample_lead)
