@@ -81,7 +81,8 @@ class DummyDataSeeder:
             return Customer(
                 mobile=fake_mobile(),
                 plan_expiry_dt=expiry,
-                location=location
+                location=location,
+                installation_speed_in_hrs=random.randint(2, 150)
             )
 
         # Generate lead with given location
@@ -176,8 +177,6 @@ class DummyDataSeeder:
                 zone=f"Zone{i+1}",
                 active_customers=active_customers,
                 inactive_but_geographically_relevant_customers=inactive_customers,
-                competitor_connections_within_polygon=random.randint(0, 10),
-                polygon_area_in_sq_mt=random.uniform(1000.0, 10000.0),
                 recent_leads_interested_in=recent_leads,
                 tenure=random.randint(1, 10)
             )
